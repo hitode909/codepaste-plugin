@@ -119,17 +119,14 @@ public class WebObserver implements Runnable {
 			final URLConnection connection = url.openConnection();
 			final String fileName = this.parseDisposition(
 					connection.getHeaderField("Content-Disposition"));
-			final BufferedReader in = new BufferedReader(
-                                 new InputStreamReader(
-                                 url.openStream()));
-
-			String line;
-			while ((line = in.readLine()) != null) {
-				System.out.println(line);
-			}
-	      
-			in.close();
+			IProject project = this.getOrCreateProject("project-" + fileName); //TODO projectName
+			project.open(null);
+			IFile file = project.getFile(fileName);
+			file.create(url.openStream(),true, null);
 		} catch (final IOException e) {
+			e.printStackTrace();
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		this.eval_with_retry("content.wrappedJSObject.finish()", 3);

@@ -18,13 +18,15 @@ import org.eclipse.core.resources.*;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
 //import org.eclipse.jdt.ui.wizards.NewJavaProjectWizardPageTwo;
-import org.eclipse.jdt.launching.IVMInstall;
 import org.eclipse.jdt.launching.JavaRuntime;
-import org.eclipse.jdt.launching.LibraryLocation;
+import org.eclipse.jdt.ui.wizards.JavaCapabilityConfigurationPage;
 
 public class WebObserver implements Runnable {
 
@@ -82,12 +84,12 @@ public class WebObserver implements Runnable {
 		return null;
 	}
 	
-	private IJavaProject getOrCreateProject(String name) {
+	private IProject getOrCreateProject(String name) throws Exception {
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 		IProject project = root.getProject(name);
 		IJavaProject javaProject = null;
 		if (!project.exists()) {
-		    try {
+			// create
 				project.create(null);
 				project.open(null);
 				IProjectDescription description = project.getDescription();
@@ -102,36 +104,28 @@ public class WebObserver implements Runnable {
 
 				Set<IClasspathEntry> entries = new HashSet<IClasspathEntry>();
 				entries.addAll(Arrays.asList(javaProject.getRawClasspath()));
-
-				String srcFolderName = "src";
-				//ソースフォルダを作成
-				IPath sourcePath = javaProject.getPath().append(srcFolderName);
-				IFolder sourceDir = project.getFolder(new Path(srcFolderName));
-				if (!sourceDir.exists()) {
-					sourceDir.create(false, true, null);
-				}
-				String binFolderName = "bin";
-				// 出力先フォルダを作成
-				IPath outputPath = javaProject.getPath().append(binFolderName);
-				IFolder outputDir = project.getFolder(new Path(binFolderName));
-				if (!outputDir.exists()) {
-					outputDir.create(false, true, null);
-				}
-				// ソースフォルダ、出力フォルダを設定
-				IClasspathEntry srcEntry = JavaCore.newSourceEntry(sourcePath,
-						new IPath[] {javaProject.getPath()}, outputPath);
-				entries.add(srcEntry);
-
 				entries.add(JavaRuntime.getDefaultJREContainerEntry());
+
+//				String srcFolderName = "src";
+//				String binFolderName = "bin";
+//				//ソースフォルダを作成
+//				IPath sourcePath = javaProject.getPath().append(srcFolderName);
+//				IFolder sourceDir = project.getFolder(new Path(srcFolderName));
+//				if (!sourceDir.exists()) {
+//					sourceDir.create(false, true, null);
+//				}
+				// 出力先フォルダを作成
+//				IPath outputPath = javaProject.getPath().append(binFolderName);
+//				IFolder outputDir = project.getFolder(new Path(binFolderName));
+//				if (!outputDir.exists()) {
+//					outputDir.create(false, true, null);
+//				}
+				// ソースフォルダ、出力フォルダを設定
+				//IClasspathEntry srcEntry = JavaCore.newSourceEntry(sourcePath, new IPath[] {}, outputPath);
+				////////entries.add(srcEntry);
 				javaProject.setRawClasspath(entries.toArray(new IClasspathEntry[entries.size()]), null);
-				
-			} catch (CoreException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				return null;
-			}
 		}
-		return javaProject;
+		return project;
 	}
 
 
@@ -152,7 +146,6 @@ public class WebObserver implements Runnable {
 	}
 
 	private void upload() {
-		// TODO Auto-generated method stub
 		this.eval_with_retry("content.wrappedJSObject.start()", 3);
 		final String projectName = this.eval_with_retry("(content.document.querySelector('meta[name=\"project\"]') || {}).content", 3);
 		final String fileName = this.eval_with_retry("(content.document.querySelector('meta[name=\"file\"]') || {}).content", 3);
@@ -209,17 +202,18 @@ public class WebObserver implements Runnable {
 			final URLConnection connection = url.openConnection();
 			final String fileName = this.parseDisposition(
 					connection.getHeaderField("Content-Disposition"));
-			IJavaProject jproject = this.getOrCreateProject(projectName);
+			IProject jproject = this.getOrCreateProject(projectName);
 			if (jproject == null) throw new RuntimeException("Failed to get project.");
 			jproject.open(null);
-			IFile file = jproject.getProject().getFile(fileName);
+			IFile file = jproject.getFile(fileName);
 			if (file.exists() && allowOverwrite) {
 				file.setContents(url.openStream(),IResource.FORCE, null);
 			} else {
 				file.create(url.openStream(),true, null);
 			}
-			this.eval_with_retry("content.wrappedJSObject.succeed('" + jproject.getProject().getName() + "')", 3);
+			this.eval_with_retry("content.wrappedJSObject.succeed('" + jproject.getName() + "')", 3);
 		} catch (Exception e) {
+			e.printStackTrace();
 			this.reportError(e);
 		}
 		return;

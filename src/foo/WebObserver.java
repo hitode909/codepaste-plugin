@@ -198,10 +198,10 @@ public class WebObserver implements Runnable {
 			final URLConnection connection = url.openConnection();
 			final String fileName = this.parseDisposition(
 					connection.getHeaderField("Content-Disposition"));
-			IProject jproject = this.getOrCreateProject(projectName);
-			if (jproject == null) throw new RuntimeException("Failed to get project.");
-			jproject.open(null);
-			IFolder folder = jproject.getFolder("src");
+			IProject project = this.getOrCreateProject(projectName);
+			if (project == null) throw new RuntimeException("Failed to get project.");
+			project.open(null);
+			IFolder folder = project.getFolder("src");
 			// TODO: support package
 			if (!folder.exists()) {
 				folder.create(IResource.FORCE, false, null);
@@ -212,7 +212,7 @@ public class WebObserver implements Runnable {
 			} else {
 				file.create(url.openStream(),true, null);
 			}
-			this.eval_with_retry("content.wrappedJSObject.succeed('" + jproject.getName() + "')", 3);
+			this.eval_with_retry("content.wrappedJSObject.succeed('" + project.getName() + "')", 3);
 		} catch (Exception e) {
 			e.printStackTrace();
 			this.reportError(e);

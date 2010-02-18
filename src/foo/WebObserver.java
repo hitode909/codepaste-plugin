@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,14 +36,9 @@ public class WebObserver implements Runnable {
 		    }
 			process.waitFor();
 			return result.replaceAll("\"", "");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (Exception e) {
+			return null;
 		}
-		return null;
 	}
 	
 	private String exec_with_retry(String command, int retry) {
@@ -56,10 +52,20 @@ public class WebObserver implements Runnable {
 		return "";
 	};
 	
-	private boolean hasProject(String name) {
-		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-		IProject project = root.getProject(name);
-		return project.exists();
+	private IFile getFileInProject(String projectName, String fileName) {
+		try {
+			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+			IProject project = root.getProject(projectName);
+			if (project.exists()) {
+				project.open(null);
+				IFile file = project.getFile(fileName);
+				if (file.exists()) {
+					return file;
+				}
+			}
+		} catch(Exception e) {
+		}
+		return null;
 	}
 	
 	private IProject createProject(String name, Integer suffix) {
@@ -102,6 +108,30 @@ public class WebObserver implements Runnable {
 
 	private void upload() {
 		// TODO Auto-generated method stub
+		final String projectName = this.eval_with_retry("(content.document.querySelector('meta[name=\"project\"]') || {}).content", 3);
+		final String fileName = this.eval_with_retry("(content.document.querySelector('meta[name=\"file\"]') || {}).content", 3);
+		if (projectName.isEmpty() || fileName.isEmpty()) return;
+		this.eval_with_retry("content.wrappedJSObject.start()", 3);
+		try {
+			IFile file = this.getFileInProject(projectName, fileName);
+			if (file == null) throw new RuntimeException(projectName + "/" + fileName + " not found.");
+			BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
+			StringBuffer buffer = new StringBuffer();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				buffer.append(line + "\n");
+			}
+			reader.close();
+			String content = buffer.toString();
+			String encoded_content = URLEncoder.encode(content, "UTF-8");
+			System.out.println(content);
+			System.out.println(encoded_content);
+			this.eval_with_retry("content.wrappedJSObject.setBody('" + encoded_content + "')", 3);
+			this.eval_with_retry("content.wrappedJSObject.succeed()", 3);
+		} catch (Exception e) {
+			this.eval_with_retry("content.wrappedJSObject.failed('" + e.getClass().toString() + ": " + e.getLocalizedMessage() + "')", 3);
+		}
+		return;
 		
 	}
 	

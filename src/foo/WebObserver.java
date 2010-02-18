@@ -134,7 +134,7 @@ public class WebObserver implements Runnable {
 		try {
 			message = URLEncoder.encode(e.getMessage(), "UTF-8");
 		} catch (UnsupportedEncodingException e1) {
-			message = e.getMessage();
+			message = e.getClass().toString();
 		}
 		this.eval_with_retry("content.wrappedJSObject.failed('" + message + "')", 3);
 	}

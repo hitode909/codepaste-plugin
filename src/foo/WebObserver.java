@@ -19,9 +19,6 @@ public class WebObserver implements Runnable {
 		return "/Users/fkd/co/gist/292611/eval_in_firefox";
 	}
 	
-	private String eval(String arg) {
-		return this.exec(this.command() + " " + arg);
-	}
 	private String eval_with_retry(String arg, int retry) {
 		return this.exec_with_retry(this.command() + " " + arg, retry);
 	}
@@ -65,23 +62,32 @@ public class WebObserver implements Runnable {
 		return project.exists();
 	}
 	
-	private IProject getOrCreateProject(String name) {
+	private IProject createProject(String name, Integer suffix) {
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-		IProject project = root.getProject(name	);
+		IProject project = root.getProject(suffix == null ? name : name + "-" + suffix);
 		if (!project.exists()) {
 		  try {
 		    project.create(null);
 		  } catch (CoreException e1) {
 		    e1.printStackTrace();
+		    return null;
 		  }
+		  return project;
+		} else {
+			return this.createProject(name, suffix == null ? 1 : suffix + 1);
 		}
-		return project;
 	}
 	
+	private IProject createProject(String projectName) {
+		// TODO Auto-generated method stub
+		return this.createProject(projectName, null);
+	}
+
+
 	@Override
 	public void run() {
 		while(true) {
-			String arg = "var e=content.document.querySelector('meta[type=codepaste-command]'); e ? e.getAttribute('command') : false";
+			String arg = "(content.document.querySelector('meta[name=codepaste-command]') || {content: false}).content";
 		    String got = this.eval_with_retry(arg, 3);
 		    if (got.equals("download")) {
 		    	System.out.println("download");
@@ -91,7 +97,7 @@ public class WebObserver implements Runnable {
 		    } else {
 		    	System.out.println("not found -> "+ got);
 		    }
-		    this.exec("sleep 2");
+		    this.exec("sleep 10");
 		}
 	}
 
@@ -106,30 +112,29 @@ public class WebObserver implements Runnable {
 		if (m.find()){
 			return m.group(1);
 		}
-		return null;
+		return null;	
 	}
 	
 	private void download() {
-		final String arg = "content.document.querySelector('link[rel=\"download\"]').href";
-		String href = this.eval_with_retry(arg, 3);
-		if (href.isEmpty()) return;
+		String href = this.eval_with_retry(
+				"(content.document.querySelector('link[rel=\"download\"]') || {}).href", 3);
+		final String projectName = this.eval_with_retry("(content.document.querySelector('meta[name=\"project\"]') || {}).content", 3);
+		if (href.isEmpty() || projectName.isEmpty()) return;
 		this.eval_with_retry("content.wrappedJSObject.start()", 3);
 		try {
 			final URL url = new URL(href);
 			final URLConnection connection = url.openConnection();
 			final String fileName = this.parseDisposition(
 					connection.getHeaderField("Content-Disposition"));
-			IProject project = this.getOrCreateProject("project-" + fileName); //TODO projectName
+			IProject project = this.createProject(projectName); //TODO projectName
 			project.open(null);
 			IFile file = project.getFile(fileName);
 			file.create(url.openStream(),true, null);
-		} catch (final IOException e) {
-			e.printStackTrace();
-		} catch (CoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			this.eval_with_retry("content.wrappedJSObject.succeed('" + project.getName() + "')", 3);
+		} catch (Exception e) {
+			this.eval_with_retry("content.wrappedJSObject.failed('" + e.getMessage() + "')", 3);
 		}
-		this.eval_with_retry("content.wrappedJSObject.finish()", 3);
 		return;
    }
+
 }

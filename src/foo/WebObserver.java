@@ -1,32 +1,24 @@
 package foo;
 
 import java.io.BufferedReader;
-//import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.core.resources.*;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Platform;
-import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.JavaModelException;
-//import org.eclipse.jdt.ui.wizards.NewJavaProjectWizardPageTwo;
 import org.eclipse.jdt.launching.JavaRuntime;
-import org.eclipse.jdt.ui.wizards.JavaCapabilityConfigurationPage;
 
 public class WebObserver implements Runnable {
 
@@ -92,7 +84,7 @@ public class WebObserver implements Runnable {
 		IProject project = root.getProject(name);
 		IJavaProject javaProject = null;
 		if (!project.exists()) {
-			// create
+				// create
 				project.create(null);
 				project.open(null);
 				IProjectDescription description = project.getDescription();
@@ -107,24 +99,24 @@ public class WebObserver implements Runnable {
 				
 
 				Set<IClasspathEntry> entries = new HashSet<IClasspathEntry>();
+				// below is commentouted because src directory will be created. 
 				//entries.addAll(Arrays.asList(javaProject.getRawClasspath()));
 				entries.add(JavaRuntime.getDefaultJREContainerEntry());
 
 				String srcFolderName = "src";
 				String binFolderName = "bin";
-				//ソースフォルダを作成
+				//src, bin
 				IPath sourcePath = javaProject.getPath().append(srcFolderName);
 				IFolder sourceDir = project.getFolder(new Path(srcFolderName));
 				if (!sourceDir.exists()) {
 					sourceDir.create(false, true, null);
 				}
-				// 出力先フォルダを作成
 				IPath outputPath = javaProject.getPath().append(binFolderName);
 				IFolder outputDir = project.getFolder(new Path(binFolderName));
 				if (!outputDir.exists()) {
 					outputDir.create(false, true, null);
 				}
-				// ソースフォルダ、出力フォルダを設定
+				// source entry
 				IClasspathEntry srcEntry = JavaCore.newSourceEntry(sourcePath, new IPath[] {}, outputPath);
 				entries.add(srcEntry);
 				javaProject.setRawClasspath(entries.toArray(new IClasspathEntry[entries.size()]), null);
@@ -210,6 +202,7 @@ public class WebObserver implements Runnable {
 			if (jproject == null) throw new RuntimeException("Failed to get project.");
 			jproject.open(null);
 			IFolder folder = jproject.getFolder("src");
+			// TODO: support package
 			if (!folder.exists()) {
 				folder.create(IResource.FORCE, false, null);
 			}

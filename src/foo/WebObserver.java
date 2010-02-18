@@ -87,8 +87,7 @@ public class WebObserver implements Runnable {
 	@Override
 	public void run() {
 		while(true) {
-			String arg = "(content.document.querySelector('meta[name=codepaste-command]') || {content: false}).content";
-		    String got = this.eval_with_retry(arg, 3);
+		    String got = this.eval_with_retry("(content.document.querySelector('meta[name=codepaste-command]') || {content: false}).content", 3);
 		    if (got.equals("download")) {
 		    	System.out.println("download");
 		    	this.download();

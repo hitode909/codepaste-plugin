@@ -18,6 +18,8 @@ import foo.WebObserver;
  */
 public class SampleAction implements IWorkbenchWindowActionDelegate {
 	private IWorkbenchWindow window;
+	private WebObserver observer;
+	private Thread thread;
 	/**
 	 * The constructor.
 	 */
@@ -31,14 +33,15 @@ public class SampleAction implements IWorkbenchWindowActionDelegate {
 	 * @see IWorkbenchWindowActionDelegate#run
 	 */
 	public void run(IAction action) {
-		WebObserver wo = new WebObserver();
-		Thread t = new Thread(wo);
-		t.start();
-
-		MessageDialog.openInformation(
-			window.getShell(),
-			"Foo",
-			"Hello, Eclipse world");
+		if (this.observer == null) {
+			this.observer = new WebObserver();
+			this.thread = new Thread(this.observer);
+			this.thread.start();
+		}
+//		MessageDialog.openInformation(
+//			window.getShell(),
+//			"Foo",
+//			"Hello, Eclipse world");
 	}
 
 	/**

@@ -68,15 +68,18 @@ public class WebObserver implements Runnable {
 		return "";
 	};
 	
-	private IFile getFileInProject(String projectName, String fileName) {
+	private IFile getSourceFileInProject(String projectName, String fileName) {
 		try {
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject project = root.getProject(projectName);
 			if (project.exists()) {
 				project.open(null);
-				IFile file = project.getFile(fileName);
-				if (file.exists()) {
-					return file;
+				IFolder folder = project.getFolder("src");
+				if (folder.exists()) {
+					IFile file = folder.getFile(fileName);
+					if (file.exists()) {
+						return file;
+					}
 				}
 			}
 		} catch(Exception e) {
@@ -101,28 +104,29 @@ public class WebObserver implements Runnable {
 				project.setDescription(description, null);
 
 				javaProject = JavaCore.create(project);
+				
 
 				Set<IClasspathEntry> entries = new HashSet<IClasspathEntry>();
-				entries.addAll(Arrays.asList(javaProject.getRawClasspath()));
+				//entries.addAll(Arrays.asList(javaProject.getRawClasspath()));
 				entries.add(JavaRuntime.getDefaultJREContainerEntry());
 
-//				String srcFolderName = "src";
-//				String binFolderName = "bin";
-//				//ソースフォルダを作成
-//				IPath sourcePath = javaProject.getPath().append(srcFolderName);
-//				IFolder sourceDir = project.getFolder(new Path(srcFolderName));
-//				if (!sourceDir.exists()) {
-//					sourceDir.create(false, true, null);
-//				}
+				String srcFolderName = "src";
+				String binFolderName = "bin";
+				//ソースフォルダを作成
+				IPath sourcePath = javaProject.getPath().append(srcFolderName);
+				IFolder sourceDir = project.getFolder(new Path(srcFolderName));
+				if (!sourceDir.exists()) {
+					sourceDir.create(false, true, null);
+				}
 				// 出力先フォルダを作成
-//				IPath outputPath = javaProject.getPath().append(binFolderName);
-//				IFolder outputDir = project.getFolder(new Path(binFolderName));
-//				if (!outputDir.exists()) {
-//					outputDir.create(false, true, null);
-//				}
+				IPath outputPath = javaProject.getPath().append(binFolderName);
+				IFolder outputDir = project.getFolder(new Path(binFolderName));
+				if (!outputDir.exists()) {
+					outputDir.create(false, true, null);
+				}
 				// ソースフォルダ、出力フォルダを設定
-				//IClasspathEntry srcEntry = JavaCore.newSourceEntry(sourcePath, new IPath[] {}, outputPath);
-				////////entries.add(srcEntry);
+				IClasspathEntry srcEntry = JavaCore.newSourceEntry(sourcePath, new IPath[] {}, outputPath);
+				entries.add(srcEntry);
 				javaProject.setRawClasspath(entries.toArray(new IClasspathEntry[entries.size()]), null);
 		}
 		return project;
@@ -141,7 +145,7 @@ public class WebObserver implements Runnable {
 		    } else {
 		    	System.out.println("not found -> "+ got);
 		    }
-		    this.exec("sleep 10");
+		    this.exec("sleep 5");
 		}
 	}
 
@@ -151,7 +155,7 @@ public class WebObserver implements Runnable {
 		final String fileName = this.eval_with_retry("(content.document.querySelector('meta[name=\"file\"]') || {}).content", 3);
 		try {
 			if (projectName.isEmpty() || fileName.isEmpty()) throw new Exception("Page seems broken.");
-			IFile file = this.getFileInProject(projectName, fileName);
+			IFile file = this.getSourceFileInProject(projectName, fileName);
 			if (file == null) throw new RuntimeException(projectName + "/" + fileName + " not found.");
 			BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
 			StringBuffer buffer = new StringBuffer();
@@ -205,7 +209,11 @@ public class WebObserver implements Runnable {
 			IProject jproject = this.getOrCreateProject(projectName);
 			if (jproject == null) throw new RuntimeException("Failed to get project.");
 			jproject.open(null);
-			IFile file = jproject.getFile(fileName);
+			IFolder folder = jproject.getFolder("src");
+			if (!folder.exists()) {
+				folder.create(IResource.FORCE, false, null);
+			}
+			IFile file = folder.getFile(fileName);
 			if (file.exists() && allowOverwrite) {
 				file.setContents(url.openStream(),IResource.FORCE, null);
 			} else {

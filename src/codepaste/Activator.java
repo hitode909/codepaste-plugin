@@ -1,4 +1,4 @@
-package foo;
+package codepaste;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;

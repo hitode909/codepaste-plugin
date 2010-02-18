@@ -1,4 +1,4 @@
-package foo;
+package codepaste;
 
 import org.eclipse.ui.IStartup;
 

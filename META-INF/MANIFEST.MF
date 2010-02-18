@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Foo
-Bundle-SymbolicName: foo; singleton:=true
+Bundle-SymbolicName: CodePaste;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Bundle-Activator: foo.Activator
+Bundle-Activator: codepaste.Activator
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources;bundle-version="3.5.1",
